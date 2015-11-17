@@ -1,0 +1,41 @@
+{
+  "name": "mqttsn-packet",
+  "version": "0.0.1",
+  "description": "Parse and generate MQTT-SN packets",
+  "main": "mqttsn.js",
+  "scripts": {
+    "test": "tape test.js | faucet"
+  },
+  "pre-commit": "test",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ithinuel/mqttsn-packet.git"
+  },
+  "keywords": [
+    "MQTT",
+    "MQTTSN",
+    "packet",
+    "parse",
+    "publish",
+    "subscribe",
+    "pubsub",
+    "udp",
+    "sensor",
+    "network"
+  ],
+  "author": "Wilfried Chauveau",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ithinuel/mqttsn-packet/issues"
+  },
+  "homepage": "https://github.com/ithinuel/mqttsn-packet",
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "pre-commit": "^1.1.2",
+    "readable-stream": "^2.0.4",
+    "tape": "^4.2.2"
+  },
+  "dependencies": {
+    "bl": "^1.0.0"
+  }
+}
