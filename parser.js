@@ -96,77 +96,79 @@ Parser.prototype._parsePayload = function parserParsePayload() {
   var result = false;
   
   if ((this.packet.length === 0) ||
-      (this._list.length >= this.packet.length) ||
-      (this.packet.cmd !== 'Encapsulated message')) {   
-    switch (this.packet.cmd) {
-      case 'advertise':
-        this._parseAdvertise();
-        break;
-      case 'searchgw':
-        this._parseSearchGW();
-        break;
-      case 'gwinfo':
-        this._parseGWInfo();
-        break;
-      case 'connect':
-        this._parseConnect();
-        break;
-      case 'connack':
-      case 'willtopicresp':
-      case 'willmsgresp':
-        this._parseRespReturnCode();
-        break;
-      case 'willtopicupd':
-      case 'willtopic':
-        this._parseWillTopic();
-        break;
-      case 'willmsg':
-      case 'willmsgupd':
-        this._parseWillMsg();
-        break;
-      case 'register':
-        this._parseRegister();
-        break;
-      case 'regack':
-        this._parseRegAck();
-        break;
-      case 'publish':
-        this._parsePublish();
-        break;
-      case 'puback':
-        this._parsePubAck();
-        break;
-      case 'pubcomp':
-      case 'pubrec':
-      case 'pubrel':
-      case 'unsuback':
-        this._parseMsgId();
-        break;
-      case 'unsubscribe':
-      case 'subscribe':
-        this._parseSubscribeUnsubscribe();
-        break;
-      case 'suback':
-        this._parseSubAck();
-        break;
-      case 'pingreq':
-        this._parsePingReq();
-        break;
-      case 'disconnect':
-        this._parseDisconnect();
-        break;
-      case 'willtopicreq':
-      case 'willmsgreq':
-      case 'pingresp':
-        // these are empty, nothing to do
-        break;
-      default:
-        this.emit('error', new Error('command not supported'));
-    }
+      (this._list.length >= this.packet.length)) {
     
-    result = true;
-  } else if (this.packet.cmd === 'Encasulated message') {
-    result = this._parseEncapsulatedMsg();
+    if (this.packet.cmd !== 'Encapsulated message') {
+      switch (this.packet.cmd) {
+        case 'advertise':
+          this._parseAdvertise();
+          break;
+        case 'searchgw':
+          this._parseSearchGW();
+          break;
+        case 'gwinfo':
+          this._parseGWInfo();
+          break;
+        case 'connect':
+          this._parseConnect();
+          break;
+        case 'connack':
+        case 'willtopicresp':
+        case 'willmsgresp':
+          this._parseRespReturnCode();
+          break;
+        case 'willtopicupd':
+        case 'willtopic':
+          this._parseWillTopic();
+          break;
+        case 'willmsg':
+        case 'willmsgupd':
+          this._parseWillMsg();
+          break;
+        case 'register':
+          this._parseRegister();
+          break;
+        case 'regack':
+          this._parseRegAck();
+          break;
+        case 'publish':
+          this._parsePublish();
+          break;
+        case 'puback':
+          this._parsePubAck();
+          break;
+        case 'pubcomp':
+        case 'pubrec':
+        case 'pubrel':
+        case 'unsuback':
+          this._parseMsgId();
+          break;
+        case 'unsubscribe':
+        case 'subscribe':
+          this._parseSubscribeUnsubscribe();
+          break;
+        case 'suback':
+          this._parseSubAck();
+          break;
+        case 'pingreq':
+          this._parsePingReq();
+          break;
+        case 'disconnect':
+          this._parseDisconnect();
+          break;
+        case 'willtopicreq':
+        case 'willmsgreq':
+        case 'pingresp':
+          // these are empty, nothing to do
+          break;
+        default:
+          this.emit('error', new Error('command not supported'));
+      }
+
+      result = true;
+    } else if (this.packet.cmd === 'Encasulated message') {
+      result = this._parseEncapsulatedMsg();
+    }
   }
   
   return result;
@@ -286,7 +288,11 @@ Parser.prototype._parsePublish = function parserParsePublish() {
   }
   
   if (!this._parseFlags()) { return; }
-  packet.topicId = this._list.readUInt16BE(this._pos);
+  if (packet.topicIdType === 'short topic') {
+    packet.topicId = this._list.toString('utf8', this._pos, this._pos + 2);
+  } else {
+    packet.topicId = this._list.readUInt16BE(this._pos);
+  }
   this._pos += 2;
   packet.msgId = this._list.readUInt16BE(this._pos);
   this._pos += 2;
