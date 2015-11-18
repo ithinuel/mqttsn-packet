@@ -42,6 +42,17 @@ for (var i = 30; i < 254; i += 1) {
   protocol.types[i] = 'reserved';
 }
 
+protocol.return_types = {
+  0: 'Accepted',
+  1: 'Rejected: congestion',
+  2: 'Rejected: invalid topic ID',
+  3: 'Rejected: not supported'
+};
+
+for (var i = 4; i < 256; i += 1) {
+  protocol.return_types[i] = 'reserved';
+}
+
 /* Mnemonic => Command code */
 /* jshint forin:false : there is no unwanted prototype here */
 protocol.codes = {};
@@ -49,7 +60,19 @@ for (var k in protocol.types) {
   var v = protocol.types[k];
   protocol.codes[v] = k;
 }
+
+protocol.return_codes = {};
+for (var k in protocol.return_types) {
+  var v = protocol.return_types[k];
+  protocol.return_codes[v] = k;
+}
 /* jshint forin:true */
+
+protocol.topicIdCodes = {
+  normal: 0,
+  'pre-defined': 1,
+  'short topic': 2
+};
 
 protocol.DUP_MASK = 0x80;
 protocol.QOS_MASK = 0x60;

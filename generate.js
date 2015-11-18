@@ -5,14 +5,15 @@ var writeToStream = require('./writeToStream'),
     inherits      = require('util').inherits;
 
 function Accumulator() {
-  this._array = [];
+  this._array = new Array(6);
+  this._i = 0;
 }
 
 inherits(Accumulator, EE);
 
 Accumulator.prototype.write = function accumulatorWrite(chunk) {
-    console.log(chunk);
-  this._array.push(chunk);
+  this._array[this._i] = chunk;
+  this._i += 1;
   return true;
 };
 
@@ -23,8 +24,8 @@ Accumulator.prototype.concat = function accumulatorConcat() {
       pos = 0,
       i = 0, result;
   
-  console.log(list[i]);
   for (i = 0; i < list.length && list[i]; i += 1) {
+    
     if (typeof list[i] !== 'string') {
       lengths[i] = list[i].length;
     } else {
@@ -32,7 +33,6 @@ Accumulator.prototype.concat = function accumulatorConcat() {
     }
     length += lengths[i];
   }
-  
   
   result = new Buffer(length);
   for (i = 0; i < list.length && list[i]; i += 1) {

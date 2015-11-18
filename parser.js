@@ -6,10 +6,12 @@ var bl        = require('bl'),
     Packet    = require('./packet'),
     constants = require('./constants');
 
-function Parser(isClient) {
+function Parser(opts) {
   if (!(this instanceof Parser)) {
-    return new Parser(isClient);
+    return new Parser(opts);
   }
+  
+  opts = opts || {};
 
   this._list = bl();
   this._newPacket();
@@ -20,7 +22,7 @@ function Parser(isClient) {
     '_newPacket'
   ];
   this._stateCounter = 0;
-  this._isClient = isClient;
+  this._isClient = opts.isClient || false;
 }
 
 inherits(Parser, EE);
@@ -28,6 +30,7 @@ inherits(Parser, EE);
 Parser.prototype._newPacket = function parserNewPacket() {
   if (this.packet) {
     this._list.consume(this.packet.length);
+    delete this.packet.length;
     this.emit('packet', this.packet);
   }
   
@@ -69,7 +72,7 @@ Parser.prototype._parseHeaderInternal = function parserParseHeaderInternal() {
   var cmdCode = this._list.readUInt8(this._pos + cmdCodeOffset);
   this._pos += cmdCodeOffset + 1;
   return {
-    length: length,
+    length: length - this._pos,
     headerLength: cmdCodeOffset + 1,
     cmdCode: cmdCode
   };
@@ -158,7 +161,7 @@ Parser.prototype._parsePayload = function parserParsePayload() {
         // these are empty, nothing to do
         break;
       default:
-        this.emit('error', new Error('not supported'));
+        this.emit('error', new Error('command not supported'));
     }
     
     result = true;
@@ -220,7 +223,8 @@ Parser.prototype._parseConnect = function parserParseConnect() {
   this._pos += 1;
   
   packet.duration = this._list.readUInt16BE(this._pos);
-  packet.clientId = this._parseString();
+  this._pos += 2;
+  packet.clientId = this._list.toString('utf8', this._pos, packet.length);
   if (packet.clientId === null) {
     this.emit('error', new Error('cannot read client ID'));
   }
@@ -237,12 +241,10 @@ Parser.prototype._parseRespReturnCode = function parserParseRespReturnCode() {
 
 Parser.prototype._parseWillTopic = function parserParseWillTopic() {
   var packet = this.packet;
-  if (packet.length < 1) {
-    return this.emit('error', new Error('packet too short'));
+  if (packet.length !== 0) {
+    if (!this._parseFlags()) { return; }
+    packet.willTopic = this._list.toString('utf8', this._pos, packet.length);
   }
-  
-  if (!this._parseFlags()) { return; }
-  packet.willTopic = this._list.toString('utf8', this._pos, packet.length);
 };
 
 Parser.prototype._parseWillMsg = function parserParseWillMsg() {
@@ -277,7 +279,7 @@ Parser.prototype._parseRegAck = function parserParseRegAck() {
   }
 };
 
-Parser.prototype._parsePublic = function parserParsePublish() {
+Parser.prototype._parsePublish = function parserParsePublish() {
   var packet = this.packet;
   if (packet.length < 5) {
     return this.emit('error', new Error('packet too short'));
@@ -400,25 +402,7 @@ Parser.prototype._parseReturnCode = function parserParseReturnCode() {
     return null;
   }
   var retCode = this._list.readUInt8(this._pos),
-      result = null;
-    
-  switch (retCode) {
-    case 0x00: 
-      result = 'Accepted';
-      break;
-    case 0x01:
-      result = 'Rejected: congestion';
-      break;
-    case 0x02:
-      result = 'Rejected: invalid topic ID';
-      break;
-    case 0x03:
-      result = 'Rejected: not supported';
-      break;
-    default:
-      result = 'reserved';
-  }
-  
+      result = constants.return_types[retCode];
   this._pos += 1;
   
   return result;
@@ -458,39 +442,20 @@ Parser.prototype._parseFlags = function parserParseFlags() {
       (packet.cmd === 'unsubscribe')) {
     switch (flags & constants.TOPICIDTYPE_MASK) {
       case 0x00:
-        packet.topicIDType = 'normal';
+        packet.topicIdType = 'normal';
         break;
       case 0x01:
-        packet.topicIDType = 'pre-defined';
+        packet.topicIdType = 'pre-defined';
         break;
       case 0x02:
-        packet.topicIDType = 'short topic';
+        packet.topicIdType = 'short topic';
         break;
       default:
         this.emit('error', new Error('unsupported topic id type'));
         result = false;
     }
   }
-  return result;
-};
-
-Parser.prototype._parseString = function parserParseString() {
-  var packet = this.packet;
-  
-  if (packet.length < (this._pos + 2)) {
-    return null;
-  }
-  var length = this._list.readUInt16BE(this._pos),
-      result;
-  this._pos += 2;
-  
-  if (packet.length < (this._pos + length)) {
-    return null;
-  }
-  
-  result = this._list.toString('utf8', this._pos, this._pos + length);
-  this._pos += length;
-  
+  this._pos += 1;
   return result;
 };
 
