@@ -1,14 +1,14 @@
 'use strict';
 
 var test    = require('tape'),
-    mqtt    = require('./'),
+    mqttsn    = require('./'),
     WS      = require('readable-stream').Writable;
 
 function testParseGenerate(name, object, buffer, opts, expect) {
   test(name + ' parse', function(t) {
     t.plan(2);
 
-    var parser    = mqtt.parser(opts),
+    var parser    = mqttsn.parser(opts),
         expected  = expect || object,
         fixture   = buffer;
 
@@ -30,7 +30,7 @@ function testParseGenerate(name, object, buffer, opts, expect) {
   test(name + ' generate', function(t) {
     t.plan(1);
     try {
-      t.equal(mqtt.generate(object).toString('hex'), buffer.toString('hex'));
+      t.equal(mqttsn.generate(object).toString('hex'), buffer.toString('hex'));
     } catch (e) {
       t.error(e);
     }
@@ -39,7 +39,7 @@ function testParseGenerate(name, object, buffer, opts, expect) {
   test(name + ' mirror', function(t) {
     t.plan(2);
 
-    var parser    = mqtt.parser(opts),
+    var parser    = mqttsn.parser(opts),
         expected  = expect || object,
         fixture;
 
@@ -51,7 +51,7 @@ function testParseGenerate(name, object, buffer, opts, expect) {
     });
 
     try {
-      fixture = mqtt.generate(object);
+      fixture = mqttsn.generate(object);
       t.equal(parser.parse(fixture), 0, 'remaining bytes');
     } catch (e) {
       t.error(e);
@@ -64,7 +64,7 @@ function testParseError(expected, fixture, message) {
   test(expected, function(t) {
     t.plan(1);
 
-    var parser = mqtt.parser();
+    var parser = mqttsn.parser();
 
     parser.on('error', function(err) {
       t.equal(err.message, message, 'expected error message');
@@ -79,7 +79,7 @@ function testGenerateError(expected, object, fixture) {
   test(expected, function (t) {
     t.plan(1);
     try {
-      var buffer = mqtt.generate(object);
+      var buffer = mqttsn.generate(object);
       t.fail('generate was expected to fail but get ' + buffer.toString('hex'));
     } catch (e) {
       t.equal(e.message, fixture, 'expected error message');
