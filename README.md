@@ -1,7 +1,8 @@
 mqttsn-packet&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/ithinuel/mqttsn-packet.svg?branch=master)](https://travis-ci.org/ithinuel/mqttsn-packet)
 ==========
 
-Encode and Decode MQTT-SN 1.2 packets
+Encode and Decode MQTT-SN 1.2 packets.
+It is freely inspired from [mqttjs/mqtt-packet](https://github.com/mqttjs/mqtt-packet).
 
   * <a href="#install">Install</a>
   * <a href="#examples">Examples</a>
