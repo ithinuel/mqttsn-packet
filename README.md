@@ -1,7 +1,7 @@
 mqttsn-packet&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/ithinuel/mqttsn-packet.svg?branch=master)](https://travis-ci.org/ithinuel/mqttsn-packet)
 ==========
 
-Encode and Decode MQTT-SN 1.2
+Encode and Decode MQTT-SN 1.2 packets
 
   * <a href="#install">Install</a>
   * <a href="#examples">Examples</a>
@@ -9,7 +9,6 @@ Encode and Decode MQTT-SN 1.2
 
 Install
 -------
-__not yet published on npm__
 ```bash
 npm install mqttsn-packet --save
 ```
@@ -48,6 +47,12 @@ var mqttsn  = require('mqttsn-packet'),
 parser.on('packet', function (packet) {
   console.log(packet);
   // prints :
+  // Packet {
+  //   cmd: 'connect',
+  //   will: true,
+  //   cleanSession: true,
+  //   duration: 1800,
+  //   clientId: 'test' }
 });
 
 parser.parse(new Buffer([
