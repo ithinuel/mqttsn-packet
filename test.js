@@ -1,8 +1,7 @@
 'use strict';
 
 var test    = require('tape'),
-    mqttsn    = require('./'),
-    WS      = require('readable-stream').Writable;
+    mqttsn  = require('./');
 
 function testParseGenerate(name, object, buffer, opts, expect) {
   test(name + ' parse', function(t) {
@@ -62,15 +61,17 @@ function testParseGenerate(name, object, buffer, opts, expect) {
 
 function testParseError(expected, fixture, message) {
   test(expected, function(t) {
-    t.plan(1);
+    t.plan(2);
 
     var parser = mqttsn.parser();
-
     parser.on('error', function(err) {
       t.equal(err.message, message, 'expected error message');
     });
-
-    parser.parse(fixture);
+    try {
+      t.equal(parser.parse(fixture), 0, 'remaining bytes');
+    } catch (e) {
+      t.error(e);
+    }
     t.timeoutAfter(20);
   });
 }
