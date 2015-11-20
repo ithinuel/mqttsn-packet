@@ -27,27 +27,13 @@ function Parser(opts) {
 
 inherits(Parser, EE);
 
-Parser.prototype._newPacket = function parserNewPacket() {
-  if (this.packet) {
-    this._list.consume(this.packet.length);
-    delete this.packet.length;
-    this.emit('packet', this.packet);
-  }
-  
-  this.packet = new Packet();
-  
-  return true;
-};
-
 Parser.prototype.parse = function parserParse(buf) {
   this._list.append(buf);
-  
-  this._pos = 0;
-  while (((this.packet.length !== -1) || this._list.length > 0) &&
-    this[this._states[this._stateCounter]]()) {
+
+  while ((this.packet.length === 0 || this._list.length > 0) &&
+         this[this._states[this._stateCounter]]()) {
     this._stateCounter += 1;
-    this._pos = 0;
-    
+
     if (this._stateCounter >= this._states.length) {
       this._stateCounter = 0;
     }
@@ -55,41 +41,52 @@ Parser.prototype.parse = function parserParse(buf) {
   return this._list.length;
 };
 
-Parser.prototype._parseHeaderInternal = function parserParseHeaderInternal() {
-  var length = this._list.readUInt8(this._pos),
+Parser.prototype._newPacket = function parserNewPacket() {
+  if (this.packet) {
+    this._list.consume(this.packet.length);
+    delete this.packet.length;
+    this.emit('packet', this.packet);
+  }
+
+  this.packet = new Packet();
+
+  return true;
+};
+
+Parser.prototype._parseHeader = function parserParseHeader() {
+  var header = this._parseHeaderInternal(0);
+  if (header === null) {
+    return false;
+  }
+
+  this.packet.length = header.length;
+  this.packet.cmd = constants.types[header.cmdCode];
+
+  this._list.consume(header.headerLength);
+
+  return true;
+};
+
+Parser.prototype._parseHeaderInternal = function parserParseHeaderInternal(pos) {
+  var length = this._list.readUInt8(pos),
       cmdCodeOffset = 1;
   if (length === 0x01) {
-    if (this._list.length < (this._pos + 4)) {
+    if (this._list.length < (pos + 4)) {
       return null;
     }
     
-    length = this._list.readUInt16BE(this._pos + 1);
+    length = this._list.readUInt16BE(pos + 1);
     cmdCodeOffset = 3;
   } else if (this._list.length < 2) {
     return null;
   }
   
-  var cmdCode = this._list.readUInt8(this._pos + cmdCodeOffset);
-  this._pos += cmdCodeOffset + 1;
+  var cmdCode = this._list.readUInt8(pos + cmdCodeOffset);
   return {
-    length: length - this._pos,
+    length: length - (cmdCodeOffset + 1),
     headerLength: cmdCodeOffset + 1,
     cmdCode: cmdCode
   };
-};
-
-Parser.prototype._parseHeader = function parserParseHeader() {
-  var header = this._parseHeaderInternal();
-  if (header === null) {
-    return false;
-  }
-  
-  this.packet.length = header.length;
-  this.packet.cmd = constants.types[header.cmdCode];
-  
-  this._list.consume(header.headerLength);
-  
-  return true;
 };
 
 Parser.prototype._parsePayload = function parserParsePayload() {
@@ -175,253 +172,214 @@ Parser.prototype._parsePayload = function parserParsePayload() {
 };
 
 Parser.prototype._parseAdvertise = function parserParseAdvertise() {
-  var packet = this.packet;
-  if (packet.length !== 3) {
+  if (this.packet.length !== 3) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.gwId = this._list.readUInt8(0);
-  packet.duration = this._list.readUInt16BE(1);
+  this.packet.gwId = this._list.readUInt8(0);
+  this.packet.duration = this._list.readUInt16BE(1);
 };
 
 Parser.prototype._parseSearchGW = function parserParseSearchGW() {
-  var packet = this.packet;
-  if (packet.length !== 1) {
+  if (this.packet.length !== 1) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.radius = this._list.readUInt8(0);
+  this.packet.radius = this._list.readUInt8(0);
 };
 
 Parser.prototype._parseGWInfo = function parserParseGWInfo() {
-  var packet = this.packet;
-  if ((this._isClient && (packet.length < 2)) ||
-      (!this._isClient && (packet.length !== 1))) {
+  if ((this._isClient && (this.packet.length < 2)) ||
+      (!this._isClient && (this.packet.length !== 1))) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.gwId = this._list.readUInt8(0);
+  this.packet.gwId = this._list.readUInt8(0);
   
   if (this._isClient) {
     var addLen = this._list.readUInt8(1);
-    if (packet.length !== (2 + addLen)) {
+    if (this.packet.length !== (2 + addLen)) {
       return this.emit('error', new Error('wrong packet length'));
     }
     
-    packet.gwAdd = this._list.slice(2, packet.length);
+    this.packet.gwAdd = this._list.slice(2, this.packet.length);
   }  
 };
 
 Parser.prototype._parseConnect = function parserParseConnect() {
-  var packet = this.packet;
-  if (packet.length < 5) {
+  if (this.packet.length < 5) {
     return this.emit('error', new Error('packet too short'));
   }
   
-  if (!this._parseFlags()) { return; }
-  if (this._list.readUInt8(this._pos) !== constants.ID) {
+  if (!this._parseFlags(this._list.readUInt8(0))) { return; }
+  if (this._list.readUInt8(1) !== constants.ID) {
     return this.emit('error', new Error('unsupported protocol ID'));
   }
-  this._pos += 1;
-  
-  packet.duration = this._list.readUInt16BE(this._pos);
-  this._pos += 2;
-  packet.clientId = this._list.toString('utf8', this._pos, packet.length);
-  if (packet.clientId === null) {
+  this.packet.duration = this._list.readUInt16BE(2);
+  this.packet.clientId = this._list.toString('utf8', 4, this.packet.length);
+  if (this.packet.clientId === null) {
     this.emit('error', new Error('cannot read client ID'));
   }
 };
 
 Parser.prototype._parseRespReturnCode = function parserParseRespReturnCode() {
-  var packet = this.packet;
-  if (packet.length !== 1) {
+  if (this.packet.length !== 1) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.returnCode = this._parseReturnCode();
+  this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(0));
 };
 
 Parser.prototype._parseWillTopic = function parserParseWillTopic() {
-  var packet = this.packet;
-  if (packet.length !== 0) {
-    if (!this._parseFlags()) { return; }
-    packet.willTopic = this._list.toString('utf8', this._pos, packet.length);
+  if (this.packet.length !== 0) {
+    if (!this._parseFlags(this._list.readUInt8(0))) { return; }
+    this.packet.willTopic = this._list.toString('utf8', 1, this.packet.length);
   }
 };
 
 Parser.prototype._parseWillMsg = function parserParseWillMsg() {
-  var packet = this.packet;
-  
-  packet.willMsg = this._list.toString('utf8', 0, packet.length);
+  this.packet.willMsg = this._list.toString('utf8', 0, this.packet.length);
 };
 
 Parser.prototype._parseRegister = function parserParseRegister() {
-  var packet = this.packet;
-  if (packet.length < 4) {
+  if (this.packet.length < 4) {
     return this.emit('error', new Error('packet too short'));
   }
   
-  packet.topicId = this._list.readUInt16BE(0);
-  packet.msgId = this._list.readUInt16BE(2);
-  packet.topicName = this._list.toString('utf8', 4, packet.length);
+  this.packet.topicId = this._list.readUInt16BE(0);
+  this.packet.msgId = this._list.readUInt16BE(2);
+  this.packet.topicName = this._list.toString('utf8', 4, this.packet.length);
 };
 
 Parser.prototype._parseRegAck = function parserParseRegAck() {
-  var packet = this.packet;
-  if (packet.length !== 5) {
+  if (this.packet.length !== 5) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.topicId = this._list.readUInt16BE(0);
-  packet.msgId = this._list.readUInt16BE(2);
-  this._pos += 4;
-  packet.returnCode = this._parseReturnCode();
-  if (packet.returnCode === null) {
-    this.emit('error', new Error('cannot read return code'));
-  }
+  this.packet.topicId = this._list.readUInt16BE(0);
+  this.packet.msgId = this._list.readUInt16BE(2);
+  this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(4));
 };
 
 Parser.prototype._parsePublish = function parserParsePublish() {
-  var packet = this.packet;
-  if (packet.length < 5) {
+  if (this.packet.length < 5) {
     return this.emit('error', new Error('packet too short'));
   }
   
-  if (!this._parseFlags()) { return; }
-  if (packet.topicIdType === 'short topic') {
-    packet.topicId = this._list.toString('utf8', this._pos, this._pos + 2);
+  if (!this._parseFlags(this._list.readUInt8(0))) { return; }
+  if (this.packet.topicIdType === 'short topic') {
+    this.packet.topicId = this._list.toString('utf8', 1, 3);
   } else {
-    packet.topicId = this._list.readUInt16BE(this._pos);
+    this.packet.topicId = this._list.readUInt16BE(1);
   }
-  this._pos += 2;
-  packet.msgId = this._list.readUInt16BE(this._pos);
-  this._pos += 2;
-  
-  packet.payload = this._list.slice(this._pos, packet.length);
+  this.packet.msgId = this._list.readUInt16BE(3);
+  this.packet.payload = this._list.slice(5, this.packet.length);
 };
 
 Parser.prototype._parsePubAck = function parserParsePubAck() {
-  var packet = this.packet;
-  if (packet.length !== 5) {
+  if (this.packet.length !== 5) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.topicId = this._list.readUInt16BE(0);
-  packet.msgId = this._list.readUInt16BE(2);
-  this._pos = 4;
-  packet.returnCode = this._parseReturnCode();
+  this.packet.topicId = this._list.readUInt16BE(0);
+  this.packet.msgId = this._list.readUInt16BE(2);
+  this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(4));
 };
 
 Parser.prototype._parseMsgId = function parserParseMsgId() {
-  var packet = this.packet;
-  if (packet.length !== 2) {
+  if (this.packet.length !== 2) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  packet.msgId = this._list.readUInt16BE(0);
+  this.packet.msgId = this._list.readUInt16BE(0);
 };
 
 Parser.prototype._parseSubscribeUnsubscribe = function parserParseSubscribeUnsubscribe() {
-  var packet = this.packet;
-  if (packet.length < 3) {
+  if (this.packet.length < 3) {
     return this.emit('error', new Error('packet too short'));
   }
   
-  if (!this._parseFlags()) { return; }
-  packet.msgId = this._list.readUInt16BE(this._pos);
-  this._pos += 2;
+  if (!this._parseFlags(this._list.readUInt8(0))) { return; }
+  this.packet.msgId = this._list.readUInt16BE(1);
   
-  switch (packet.topicIdType) {
+  switch (this.packet.topicIdType) {
     case 'short name':
-    case 'normal':
-      packet.topicName = this._list.toString('utf8', this._pos, packet.length);
-      break;
-    case 'pre-defined':
-      if (packet.length !== 5) {
+      if (this.packet.length !== 5) {
         return this.emit('error', new Error('wrong packet length'));
       }
-      packet.topicId = this._list.readUInt16BE(this._pos);
+      this.packet.topicName = this._list.toString('utf8', 3, this.packet.length);
+      break;
+    case 'normal':
+      this.packet.topicName = this._list.toString('utf8', 3, this.packet.length);
+      break;
+    case 'pre-defined':
+      if (this.packet.length !== 5) {
+        return this.emit('error', new Error('wrong packet length'));
+      }
+      this.packet.topicId = this._list.readUInt16BE(3);
       break;
   }
 };
 Parser.prototype._parseSubAck = function parserParseSubAck() {
-  var packet = this.packet;
-  if (packet.length !== 6) {
+  if (this.packet.length !== 6) {
     return this.emit('error', new Error('wrong packet length'));
   }
   
-  if (!this._parseFlags()) { return; }
-  packet.topicId = this._list.readUInt16BE(this._pos);
-  this._pos += 2;
-  packet.msgId = this._list.readUInt16BE(this._pos);
-  this._pos += 2;
-  packet.returnCode = this._parseReturnCode();  
+  if (!this._parseFlags(this._list.readUInt8(0))) { return; }
+  this.packet.topicId = this._list.readUInt16BE(1);
+  this.packet.msgId = this._list.readUInt16BE(3);
+  this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(5));
 };
 
 Parser.prototype._parsePingReq = function parserParsePingReq() {
-  var packet = this.packet;
-  if (packet.length !== 0) {
-    packet.clientId = this._list.toString('utf8', 0, packet.length);
+  if (this.packet.length !== 0) {
+    this.packet.clientId = this._list.toString('utf8', 0, this.packet.length);
   }
 };
 
 Parser.prototype._parseDisconnect = function parserParseDisconnect() {
-  var packet = this.packet;
-  if (packet.length === 2) {
-    packet.duration = this._list.readUInt16BE(0);
-  } else if (packet.length !== 0) {
-    return this.emit('error', new Error('wrong packet length'));
+  if (this.packet.length !== 0) {
+    if (this.packet.length === 2) {
+      this.packet.duration = this._list.readUInt16BE(0);
+    } else  {
+      this.emit('error', new Error('wrong packet length'));
+    }
   }
 };
 
 Parser.prototype._parseEncapsulatedMsg = function parserParseEncapsulatedMsg() {
-  var packet = this.packet;
-  if (packet.length < 1) {
+  if (this.packet.length < 1) {
     this.emit('error', new Error('packet too short'));
     return false;
   }
   
   var ctrl = this._list.readUInt8(0);
-  packet.radius = ctrl & constants.RADIUS_MASK;
-  packet.wirelessNodeId = this._list.toString('utf8', 1, packet.length);
-  this._pos += packet.length;
+  this.packet.radius = ctrl & constants.RADIUS_MASK;
+  this.packet.wirelessNodeId = this._list.toString('utf8', 1, this.packet.length);
   
-  var header = this._parseHeaderInternal();
+  var header = this._parseHeaderInternal(this.packet.length);
   if (header === null) {
     return false;
   }
   if (header.cmdCode === constants.codes['Encapsulated message']) {
     this.emit('error', new Error('nested encapsulated message is not supported'));
   }
-  if (this._list.length < (this._pos + header.length + header.headerLength)) {
+  if (this._list.length < (this.packet.length + header.length + header.headerLength)) {
     return false;
   }
-  packet.encapsulated = this._list.slice(this._pos, this._pos + header.length + header.headerLength);
+  this.packet.length = this.packet.length + header.length + header.headerLength;
+  this.packet.encapsulated = this._list.slice(this.packet.length, this.packet.length);
   
   return true;
 };
 
-Parser.prototype._parseReturnCode = function parserParseReturnCode() {
-  var packet = this.packet;
-  
-  if (packet.length < (this._pos + 1)) {
-    return null;
-  }
-  var retCode = this._list.readUInt8(this._pos),
-      result = constants.return_types[retCode];
-  this._pos += 1;
-  
-  return result;
+Parser.prototype._parseReturnCode = function parserParseReturnCode(retCode) {
+  return constants.return_types[retCode];
 };
 
-Parser.prototype._parseFlags = function parserParseFlags() {
+Parser.prototype._parseFlags = function parserParseFlags(flags) {
   var packet = this.packet,
-      flags = this._list.readUInt8(this._pos),
       result = true;
-  if (flags === -1) {
-    this.emit('error', new Error('cannot read flags'));
-    return false;
-  }
   
   if ((packet.cmd === 'publish') ||
       (packet.cmd === 'subscribe')) {
@@ -461,7 +419,6 @@ Parser.prototype._parseFlags = function parserParseFlags() {
         result = false;
     }
   }
-  this._pos += 1;
   return result;
 };
 
