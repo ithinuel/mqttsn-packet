@@ -17,7 +17,7 @@ function streamWriteLength(buffer, length) {
     buffer.writeUInt16BE(length, 1);
     return 3;
   } else {
-    buffer.writeUInt8(length);
+    buffer.writeUInt8(length, 0);
     return 1;
   }
 }
