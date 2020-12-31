@@ -4,7 +4,7 @@ var mqttsn    = require('../'),
     i,
     start   = Date.now(),
     time,
-    buf     = new Buffer('test'),
+    buf     = Buffer.from('test'),
     object  = {
       cmd: 'publish',
       topicIdType: 'normal',

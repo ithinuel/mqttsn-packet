@@ -25,7 +25,7 @@ function streamWriteLength(buffer, length) {
 function advertise(opts) {
   var gwId = opts.gwId || 0,
       duration = opts.duration || 60,
-      result = new Buffer([5, protocol.codes.advertise, gwId, 0, 0]);
+      result = Buffer.from([5, protocol.codes.advertise, gwId, 0, 0]);
   result.writeUInt16BE(duration, 3);
   return result;
 }
@@ -33,7 +33,7 @@ function advertise(opts) {
 function searchGW(opts) {
   var radius = opts.radius || 0;
 
-  return new Buffer([3, protocol.codes.searchgw, radius]);
+  return Buffer.from([3, protocol.codes.searchgw, radius]);
 }
 
 function gwInfo(opts) {
@@ -52,7 +52,7 @@ function gwInfo(opts) {
       length += gwAdd.length;
     }
   }
-  result = new Buffer(length);
+  result = Buffer.alloc(length);
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes.gwinfo, pos);
   pos += 1;
@@ -77,7 +77,7 @@ function connect(opts) {
       duration = opts.duration || 0,
       length = 6 + Buffer.byteLength(opts.clientId),
       pos = 0,
-      result = new Buffer(length);
+      result = Buffer.alloc(length);
 
   flags |= opts.will ? protocol.WILL_MASK : 0;
   flags |= opts.cleanSession ? protocol.CLEAN_MASK : 0;
@@ -98,11 +98,11 @@ function connect(opts) {
 function respCode(opts) {
   var returnCode = getReturnCode(opts.returnCode);
 
-  return new Buffer([3, protocol.codes[opts.cmd], returnCode]);
+  return Buffer.from([3, protocol.codes[opts.cmd], returnCode]);
 }
 
 function request(opts) {
-  return new Buffer([2, protocol.codes[opts.cmd]]);
+  return Buffer.from([2, protocol.codes[opts.cmd]]);
 }
 
 function willtopic(opts) {
@@ -112,7 +112,7 @@ function willtopic(opts) {
   if (opts.willTopic) {
     length = 3 + Buffer.byteLength(opts.willTopic);
   }
-  result = new Buffer(length);
+  result = Buffer.alloc(length);
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes[opts.cmd], pos);
   pos += 1;
@@ -134,7 +134,7 @@ function willmsg(opts) {
   var willMsg = opts.willMsg || '',
       length = 2 + Buffer.byteLength(willMsg),
       pos = 0,
-      result = new Buffer(length);
+      result = Buffer.alloc(length);
 
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes[opts.cmd], pos);
@@ -148,7 +148,7 @@ function register(opts) {
       topicId = opts.topicId || 0,
       msgId = opts.msgId || 0,
       length = 6 + Buffer.byteLength(topicName),
-      result = new Buffer(length),
+      result = Buffer.alloc(length),
       pos = 0;
 
   pos = streamWriteLength(result, length);
@@ -166,7 +166,7 @@ function regack(opts) {
   var topicId = opts.topicId || 0,
       msgId = opts.msgId || 0,
       retCode = getReturnCode(opts.returnCode),
-      result = new Buffer([7, protocol.codes.regack, 0, 0, 0, 0, retCode]);
+      result = Buffer.from([7, protocol.codes.regack, 0, 0, 0, 0, retCode]);
 
   result.writeUInt16BE(topicId, 2);
   result.writeUInt16BE(msgId, 4);
@@ -199,7 +199,7 @@ function publish(opts) {
     flags |= protocol.topicIdCodes[opts.topicIdType];
   }
 
-  result = new Buffer(length);
+  result = Buffer.alloc(length);
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes.publish, pos);
   pos += 1;
@@ -228,7 +228,7 @@ function puback(opts) {
   var topicId = opts.topicId || 0,
       msgId = opts.msgId || 0,
       returnCode = getReturnCode(opts.returnCode),
-      result = new Buffer([7, protocol.codes.puback, 0, 0, 0, 0, returnCode]);
+      result = Buffer.from([7, protocol.codes.puback, 0, 0, 0, 0, returnCode]);
   result.writeUInt16BE(topicId, 2);
   result.writeUInt16BE(msgId, 4);
   return result;
@@ -236,7 +236,7 @@ function puback(opts) {
 
 function pubcomp(opts) {
   var msgId = opts.msgId || 0,
-      result = new Buffer([4, protocol.codes[opts.cmd], 0, 0]);
+      result = Buffer.from([4, protocol.codes[opts.cmd], 0, 0]);
   result.writeUInt16BE(msgId, 2);
   return result;
 }
@@ -266,7 +266,7 @@ function subscribe(opts) {
     flags |= protocol.topicIdCodes[opts.topicIdType];
     length += 2;
   }
-  result = new Buffer(length);
+  result = Buffer.alloc(length);
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes[opts.cmd], pos);
   pos += 1;
@@ -294,7 +294,7 @@ function suback(opts) {
       result;
 
   flags |= ((opts.qos || 0) << protocol.QOS_SHIFT) & protocol.QOS_MASK;
-  result = new Buffer([8, protocol.codes.suback, flags, 0, 0, 0, 0, returnCode]);
+  result = Buffer.from([8, protocol.codes.suback, flags, 0, 0, 0, 0, returnCode]);
   result.writeUInt16BE(topicId, 3);
   result.writeUInt16BE(msgId, 5);
   return result;
@@ -307,7 +307,7 @@ function pingreq(opts) {
   if (opts.clientId) {
     length += Buffer.byteLength(opts.clientId);
   }
-  result = new Buffer(length);
+  result = Buffer.alloc(length);
   pos = streamWriteLength(result, length);
   result.writeUInt8(protocol.codes.pingreq, pos);
   pos += 1;
@@ -319,7 +319,7 @@ function pingreq(opts) {
 
 function disconnect(opts) {
   var duration = opts.duration || 0,
-      result = new Buffer([4, protocol.codes.disconnect, 0, 0]);
+      result = Buffer.from([4, protocol.codes.disconnect, 0, 0]);
   result.writeUInt16BE(duration, 2);
   return result;
 }

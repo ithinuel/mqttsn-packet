@@ -88,7 +88,7 @@ function testGenerateError(expected, object, fixture) {
   });
 }
 
-testParseError('parse command not supported', new Buffer([
+testParseError('parse command not supported', Buffer.from([
   2, 248 // header
 ]), 'command not supported');
 
@@ -100,7 +100,7 @@ testParseGenerate('advertise', {
   cmd: 'advertise',
   gwId: 34,
   duration: 3600
-}, new Buffer([
+}, Buffer.from([
   5, 0, // Header
   34, // Gateway Id
   14, 16 // Duration
@@ -109,7 +109,7 @@ testParseGenerate('advertise', {
 testParseGenerate('searchgw', {
   cmd: 'searchgw',
   radius: 85
-}, new Buffer([
+}, Buffer.from([
   3, 1, // Header
   85, // radius
 ]));
@@ -117,8 +117,8 @@ testParseGenerate('searchgw', {
 testParseGenerate('gwinfo as server', {
   cmd: 'gwinfo',
   gwId: 34,
-  gwAdd: new Buffer([48, 24])
-}, new Buffer([
+  gwAdd: Buffer.from([48, 24])
+}, Buffer.from([
   3, 2, // Header
   34, // Gateway Id
 ]), {}, {
@@ -129,9 +129,9 @@ testParseGenerate('gwinfo as server', {
 testParseGenerate('gwinfo as client', {
   cmd: 'gwinfo',
   gwId: 34,
-  gwAdd: new Buffer([48, 24]),
+  gwAdd: Buffer.from([48, 24]),
   isClient: true
-}, new Buffer([
+}, Buffer.from([
   6, 2,     // Header
   34,       // Gateway Id
   2, 48, 24 // Gateway address
@@ -140,7 +140,7 @@ testParseGenerate('gwinfo as client', {
 }, {
   cmd: 'gwinfo',
   gwId: 34,
-  gwAdd: new Buffer([48, 24])
+  gwAdd: Buffer.from([48, 24])
 });
 
 testParseGenerate('connect', {
@@ -149,7 +149,7 @@ testParseGenerate('connect', {
   cleanSession: true,
   duration: 3600,
   clientId: 'testClientId'
-}, new Buffer([
+}, Buffer.from([
   18, 4,  // header
   12, 1,   // flags & protocolId
   14, 16,  // duration
@@ -159,20 +159,20 @@ testParseGenerate('connect', {
 testParseGenerate('connack', {
   cmd: 'connack',
   returnCode: 'Accepted'
-}, new Buffer([
+}, Buffer.from([
   3, 5, // header
   0     // return code
 ]));
 
 testParseGenerate('willtopicreq', {
   cmd: 'willtopicreq'
-}, new Buffer([
+}, Buffer.from([
   2, 6, // header
 ]));
 
 testParseGenerate('empty willtopic', {
   cmd: 'willtopic',
-}, new Buffer([
+}, Buffer.from([
   2, 7, // header
 ]));
 
@@ -181,7 +181,7 @@ testParseGenerate('willtopic', {
   qos: 1,
   retain: true,
   willTopic: 'hello/world'
-}, new Buffer([
+}, Buffer.from([
   14, 7,  // header
   48,     // flags
   104, 101, 108, 108, 111, 47, 119, 111, 114, 108, 100
@@ -190,14 +190,14 @@ testParseGenerate('willtopic', {
 testParseGenerate('empty willmsg', {
   cmd: 'willmsg',
   willMsg: ''
-}, new Buffer([
+}, Buffer.from([
   2, 9,  // header
 ]));
 
 testParseGenerate('willmsg', {
   cmd: 'willmsg',
   willMsg: 'helloworld'
-}, new Buffer([
+}, Buffer.from([
   12, 9,  // header
   104, 101, 108, 108, 111, 119, 111, 114, 108, 100
 ]));
@@ -207,7 +207,7 @@ testParseGenerate('register', {
   topicId: 294,
   msgId: 24,
   topicName: 'hello/world'
-}, new Buffer([
+}, Buffer.from([
   17, 10,  // header
   1, 38,
   0, 24,
@@ -219,7 +219,7 @@ testParseGenerate('regack', {
   topicId: 294,
   msgId: 24,
   returnCode: 'Rejected: congestion'
-}, new Buffer([
+}, Buffer.from([
   7, 11,  // header
   1, 38,
   0, 24,
@@ -234,8 +234,8 @@ testParseGenerate('publish on normal topicId', {
   topicIdType: 'normal',
   topicId: 294,
   msgId: 24,
-  payload: new Buffer('{"test":"bonjour"}')
-}, new Buffer([
+  payload: Buffer.from('{"test":"bonjour"}')
+}, Buffer.from([
   25, 12,  // header
   176,    // flags
   1, 38,  // topicId
@@ -251,8 +251,8 @@ testParseGenerate('publish on pre-defined topicId', {
   topicIdType: 'pre-defined',
   topicId: 294,
   msgId: 24,
-  payload: new Buffer('{"test":"bonjour"}')
-}, new Buffer([
+  payload: Buffer.from('{"test":"bonjour"}')
+}, Buffer.from([
   25, 12,  // header
   177,    // flags
   1, 38,  // topicId
@@ -268,8 +268,8 @@ testParseGenerate('publish on short topic', {
   topicIdType: 'short topic',
   topicId: 'ab',
   msgId: 24,
-  payload: new Buffer('{"test":"bonjour"}')
-}, new Buffer([
+  payload: Buffer.from('{"test":"bonjour"}')
+}, Buffer.from([
   25, 12,  // header
   178,    // flags
   97, 98,  // topicId
@@ -292,7 +292,7 @@ testParseGenerate('puback', {
   topicId: 240,
   msgId: 523,
   returnCode: 'Rejected: congestion'
-}, new Buffer([
+}, Buffer.from([
   7, 13,  // header
   0, 240, // topicId
   2, 11,  // msgId
@@ -302,7 +302,7 @@ testParseGenerate('puback', {
 testParseGenerate('pubcomp', {
   cmd: 'pubcomp',
   msgId: 523
-}, new Buffer([
+}, Buffer.from([
   4, 14, // header
   2, 11, // msgId
 ]));
@@ -314,7 +314,7 @@ testParseGenerate('subcribe', {
   msgId: 523,
   topicIdType: 'normal',
   topicName: 'hello/world'
-}, new Buffer([
+}, Buffer.from([
   16, 18, // header
   160,    // flags
   2, 11,  // msgId
@@ -327,7 +327,7 @@ testParseGenerate('suback', {
   topicId: 523,
   msgId: 302,
   returnCode: 'Accepted'
-}, new Buffer([
+}, Buffer.from([
   8, 19,  // header
   32,    // flags
   2, 11,  // topicId
@@ -338,7 +338,7 @@ testParseGenerate('suback', {
 testParseGenerate('pingreq', {
   cmd: 'pingreq',
   clientId: 'jean-michel'
-}, new Buffer([
+}, Buffer.from([
   13, 22,  // header
   106, 101, 97, 110, 45, 109, 105, 99, 104, 101, 108
 ]));
@@ -346,7 +346,7 @@ testParseGenerate('pingreq', {
 testParseGenerate('disconnect', {
   cmd: 'disconnect',
   duration: 3600
-}, new Buffer([
+}, Buffer.from([
   4, 24,  // header
   14, 16
 ]));
