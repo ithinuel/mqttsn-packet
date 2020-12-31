@@ -8,8 +8,14 @@ function testParseGenerate(name, object, buffer, opts, expect) {
     t.plan(2);
 
     var parser    = mqttsn.parser(opts),
-        expected  = expect || object,
+        expected  = expect || object,
         fixture   = buffer;
+
+    // parsing result's payload is always a buffer
+    if (typeof expected.payload === 'string') {
+        expected = JSON.parse(JSON.stringify(expected));
+        expected.payload = Buffer.from(expected.payload);
+    }
 
     parser.on('packet', function(packet) {
       t.deepEqual(packet, expected, 'expected packet');
@@ -39,8 +45,13 @@ function testParseGenerate(name, object, buffer, opts, expect) {
     t.plan(2);
 
     var parser    = mqttsn.parser(opts),
-        expected  = expect || object,
-        fixture;
+        expected  = expect || object;
+
+    // parsing result's payload is always a buffer
+    if (typeof expected.payload === 'string') {
+        expected = JSON.parse(JSON.stringify(expected));
+        expected.payload = Buffer.from(expected.payload);
+    }
 
     parser.on('packet', function(packet) {
       t.deepEqual(packet, expected, 'expected packet');
@@ -50,7 +61,7 @@ function testParseGenerate(name, object, buffer, opts, expect) {
     });
 
     try {
-      fixture = mqttsn.generate(object);
+      var fixture = mqttsn.generate(object);
       t.equal(parser.parse(fixture), 0, 'remaining bytes');
     } catch (e) {
       t.error(e);
@@ -235,6 +246,23 @@ testParseGenerate('publish on normal topicId', {
   topicId: 294,
   msgId: 24,
   payload: Buffer.from('{"test":"bonjour"}')
+}, Buffer.from([
+  25, 12,  // header
+  176,    // flags
+  1, 38,  // topicId
+  0, 24,  // msgId
+  0x7b, 0x22, 0x74, 0x65, 0x73, 0x74, 0x22, 0x3a, 0x22, 0x62, 0x6f, 0x6e, 0x6a, 0x6f, 0x75, 0x72, 0x22, 0x7d
+]));
+
+testParseGenerate('publish on string payload', {
+  cmd: 'publish',
+  dup: true,
+  qos: 1,
+  retain: true,
+  topicIdType: 'normal',
+  topicId: 294,
+  msgId: 24,
+  payload: '{"test":"bonjour"}'
 }, Buffer.from([
   25, 12,  // header
   176,    // flags

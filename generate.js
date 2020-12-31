@@ -217,7 +217,7 @@ function publish(opts) {
   result.writeUInt16BE(msgId, pos);
   pos += 2;
   if (typeof payload === 'string') {
-    result.write(result, pos, 'utf8');
+    result.write(payload, pos, 'utf8');
   } else {
     payload.copy(result, pos);
   }
