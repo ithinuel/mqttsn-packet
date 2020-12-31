@@ -8,6 +8,9 @@ It is freely inspired from [mqttjs/mqtt-packet](https://github.com/mqttjs/mqtt-p
   * <a href="#examples">Examples</a>
   * <a href="#license">Licence &amp; copyright</a>
 
+This module supports streaming input (eg from a TCP socket for a serial port) where a single buffer
+pushed to the parser may contain a partial packet or multiple packets at once.
+
 Install
 -------
 ```bash
