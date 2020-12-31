@@ -35,7 +35,7 @@ console.log(mqttsn.generate(object));
 // prints
 // <Buffer 0a 04 0c 01 07 08 74 65 73 74>
 // as :
-// new Buffer([
+// Buffer.from([
 //   10, 4, // header
 //   12, 1, // flags & protocolId
 //   7, 8,  // duration : 1800 seconds
@@ -59,7 +59,7 @@ parser.on('packet', function (packet) {
   //   clientId: 'test' }
 });
 
-parser.parse(new Buffer([
+parser.parse(Buffer.from([
   10, 4, // header
   12, 1, // flags & protocolId
   7, 8,  // duration : 1800 seconds
