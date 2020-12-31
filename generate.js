@@ -39,7 +39,7 @@ function searchGW(opts) {
 function gwInfo(opts) {
   var gwId = opts.gwId || 0,
       gwAdd = opts.gwAdd,
-      isClient = opts.isClient || false,
+      isClient = opts.isClient || false,
       length = 3,
       pos = 0,
       result;
@@ -74,7 +74,7 @@ function gwInfo(opts) {
 
 function connect(opts) {
   var flags = 0,
-      duration = opts.duration || 0,
+      duration = opts.duration || 0,
       length = 6 + Buffer.byteLength(opts.clientId),
       pos = 0,
       result = Buffer.alloc(length);
@@ -118,7 +118,7 @@ function willtopic(opts) {
   pos += 1;
   if (opts.willTopic) {
     var flags = 0,
-        qos = opts.qos || 0,
+        qos = opts.qos || 0,
         retain = opts.retain || false;
     flags |= (qos << protocol.QOS_SHIFT) & protocol.QOS_MASK;
     flags |= retain ? protocol.RETAIN_MASK : 0;
@@ -131,7 +131,7 @@ function willtopic(opts) {
 }
 
 function willmsg(opts) {
-  var willMsg = opts.willMsg || '',
+  var willMsg = opts.willMsg || '',
       length = 2 + Buffer.byteLength(willMsg),
       pos = 0,
       result = Buffer.alloc(length);
@@ -144,9 +144,9 @@ function willmsg(opts) {
 }
 
 function register(opts) {
-  var topicName = opts.topicName || '',
-      topicId = opts.topicId || 0,
-      msgId = opts.msgId || 0,
+  var topicName = opts.topicName || '',
+      topicId = opts.topicId || 0,
+      msgId = opts.msgId || 0,
       length = 6 + Buffer.byteLength(topicName),
       result = Buffer.alloc(length),
       pos = 0;
@@ -163,8 +163,8 @@ function register(opts) {
 }
 
 function regack(opts) {
-  var topicId = opts.topicId || 0,
-      msgId = opts.msgId || 0,
+  var topicId = opts.topicId || 0,
+      msgId = opts.msgId || 0,
       retCode = getReturnCode(opts.returnCode),
       result = Buffer.from([7, protocol.codes.regack, 0, 0, 0, 0, retCode]);
 
@@ -179,7 +179,7 @@ function publish(opts) {
       msgId = opts.msgId || 0,
       topicIdType = 0,
       length = 7,
-      payload = opts.payload || '',
+      payload = opts.payload || '',
       pos = 0,
       result;
 
@@ -244,7 +244,7 @@ function pubcomp(opts) {
 function subscribe(opts) {
   var length = 5,
       flags = 0,
-      msgId = opts.msgId || 0,
+      msgId = opts.msgId || 0,
       topicIdCode,
       topicId = opts.topicId,
       topicName = opts.topicName,
@@ -318,7 +318,7 @@ function pingreq(opts) {
 }
 
 function disconnect(opts) {
-  var duration = opts.duration || 0,
+  var duration = opts.duration || 0,
       result = Buffer.from([4, protocol.codes.disconnect, 0, 0]);
   result.writeUInt16BE(duration, 2);
   return result;
