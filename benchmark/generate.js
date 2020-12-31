@@ -1,6 +1,6 @@
 
 var mqttsn    = require('../'),
-    max     = 100000,
+    max     = 10000000,
     i,
     start   = Date.now(),
     time,
