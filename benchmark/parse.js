@@ -4,7 +4,7 @@ var mqttsn  = require('../'),
     i,
     start   = Date.now(),
     time,
-    buf     = new Buffer([
+    buf     = Buffer.from([
   18, 4,  // header
   12, 1,   // flags & protocolId
   14, 16,  // duration

@@ -8,6 +8,9 @@ It is freely inspired from [mqttjs/mqtt-packet](https://github.com/mqttjs/mqtt-p
   * <a href="#examples">Examples</a>
   * <a href="#license">Licence &amp; copyright</a>
 
+This module supports streaming input (eg from a TCP socket for a serial port) where a single buffer
+pushed to the parser may contain a partial packet or multiple packets at once.
+
 Install
 -------
 ```bash
@@ -32,7 +35,7 @@ console.log(mqttsn.generate(object));
 // prints
 // <Buffer 0a 04 0c 01 07 08 74 65 73 74>
 // as :
-// new Buffer([
+// Buffer.from([
 //   10, 4, // header
 //   12, 1, // flags & protocolId
 //   7, 8,  // duration : 1800 seconds
@@ -56,7 +59,7 @@ parser.on('packet', function (packet) {
   //   clientId: 'test' }
 });
 
-parser.parse(new Buffer([
+parser.parse(Buffer.from([
   10, 4, // header
   12, 1, // flags & protocolId
   7, 8,  // duration : 1800 seconds

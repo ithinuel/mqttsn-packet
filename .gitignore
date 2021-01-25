@@ -25,3 +25,6 @@ build/Release
 # Dependency directory
 # https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
 node_modules
+
+# this is a library. It does not need to lock the dependencies.
+package-lock.json

@@ -10,7 +10,7 @@ function Parser(opts) {
   if (!(this instanceof Parser)) {
     return new Parser(opts);
   }
-  
+
   opts = opts || {};
 
   this._list = bl();
@@ -22,7 +22,7 @@ function Parser(opts) {
     '_newPacket'
   ];
   this._stateCounter = 0;
-  this._isClient = opts.isClient || false;
+  this._isClient = opts.isClient || false;
 }
 
 inherits(Parser, EE);
@@ -74,13 +74,13 @@ Parser.prototype._parseHeaderInternal = function parserParseHeaderInternal(pos) 
     if (this._list.length < (pos + 4)) {
       return null;
     }
-    
+
     length = this._list.readUInt16BE(pos + 1);
     cmdCodeOffset = 3;
   } else if (this._list.length < 2) {
     return null;
   }
-  
+
   var cmdCode = this._list.readUInt8(pos + cmdCodeOffset);
   return {
     length: length - (cmdCodeOffset + 1),
@@ -91,10 +91,10 @@ Parser.prototype._parseHeaderInternal = function parserParseHeaderInternal(pos) 
 
 Parser.prototype._parsePayload = function parserParsePayload() {
   var result = false;
-  
+
   if ((this.packet.length === 0) ||
       (this._list.length >= this.packet.length)) {
-    
+
     if (this.packet.cmd !== 'Encapsulated message') {
       switch (this.packet.cmd) {
         case 'advertise':
@@ -167,7 +167,7 @@ Parser.prototype._parsePayload = function parserParsePayload() {
       result = this._parseEncapsulatedMsg();
     }
   }
-  
+
   return result;
 };
 
@@ -175,7 +175,7 @@ Parser.prototype._parseAdvertise = function parserParseAdvertise() {
   if (this.packet.length !== 3) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.gwId = this._list.readUInt8(0);
   this.packet.duration = this._list.readUInt16BE(1);
 };
@@ -184,7 +184,7 @@ Parser.prototype._parseSearchGW = function parserParseSearchGW() {
   if (this.packet.length !== 1) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.radius = this._list.readUInt8(0);
 };
 
@@ -193,24 +193,24 @@ Parser.prototype._parseGWInfo = function parserParseGWInfo() {
       (!this._isClient && (this.packet.length !== 1))) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.gwId = this._list.readUInt8(0);
-  
+
   if (this._isClient) {
     var addLen = this._list.readUInt8(1);
     if (this.packet.length !== (2 + addLen)) {
       return this.emit('error', new Error('wrong packet length'));
     }
-    
+
     this.packet.gwAdd = this._list.slice(2, this.packet.length);
-  }  
+  }
 };
 
 Parser.prototype._parseConnect = function parserParseConnect() {
   if (this.packet.length < 5) {
     return this.emit('error', new Error('packet too short'));
   }
-  
+
   if (!this._parseFlags(this._list.readUInt8(0))) { return; }
   if (this._list.readUInt8(1) !== constants.ID) {
     return this.emit('error', new Error('unsupported protocol ID'));
@@ -226,7 +226,7 @@ Parser.prototype._parseRespReturnCode = function parserParseRespReturnCode() {
   if (this.packet.length !== 1) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(0));
 };
 
@@ -245,7 +245,7 @@ Parser.prototype._parseRegister = function parserParseRegister() {
   if (this.packet.length < 4) {
     return this.emit('error', new Error('packet too short'));
   }
-  
+
   this.packet.topicId = this._list.readUInt16BE(0);
   this.packet.msgId = this._list.readUInt16BE(2);
   this.packet.topicName = this._list.toString('utf8', 4, this.packet.length);
@@ -255,7 +255,7 @@ Parser.prototype._parseRegAck = function parserParseRegAck() {
   if (this.packet.length !== 5) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.topicId = this._list.readUInt16BE(0);
   this.packet.msgId = this._list.readUInt16BE(2);
   this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(4));
@@ -265,7 +265,7 @@ Parser.prototype._parsePublish = function parserParsePublish() {
   if (this.packet.length < 5) {
     return this.emit('error', new Error('packet too short'));
   }
-  
+
   if (!this._parseFlags(this._list.readUInt8(0))) { return; }
   if (this.packet.topicIdType === 'short topic') {
     this.packet.topicId = this._list.toString('utf8', 1, 3);
@@ -280,7 +280,7 @@ Parser.prototype._parsePubAck = function parserParsePubAck() {
   if (this.packet.length !== 5) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.topicId = this._list.readUInt16BE(0);
   this.packet.msgId = this._list.readUInt16BE(2);
   this.packet.returnCode = this._parseReturnCode(this._list.readUInt8(4));
@@ -290,7 +290,7 @@ Parser.prototype._parseMsgId = function parserParseMsgId() {
   if (this.packet.length !== 2) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   this.packet.msgId = this._list.readUInt16BE(0);
 };
 
@@ -298,10 +298,10 @@ Parser.prototype._parseSubscribeUnsubscribe = function parserParseSubscribeUnsub
   if (this.packet.length < 3) {
     return this.emit('error', new Error('packet too short'));
   }
-  
+
   if (!this._parseFlags(this._list.readUInt8(0))) { return; }
   this.packet.msgId = this._list.readUInt16BE(1);
-  
+
   switch (this.packet.topicIdType) {
     case 'short name':
       if (this.packet.length !== 5) {
@@ -324,7 +324,7 @@ Parser.prototype._parseSubAck = function parserParseSubAck() {
   if (this.packet.length !== 6) {
     return this.emit('error', new Error('wrong packet length'));
   }
-  
+
   if (!this._parseFlags(this._list.readUInt8(0))) { return; }
   this.packet.topicId = this._list.readUInt16BE(1);
   this.packet.msgId = this._list.readUInt16BE(3);
@@ -352,11 +352,11 @@ Parser.prototype._parseEncapsulatedMsg = function parserParseEncapsulatedMsg() {
     this.emit('error', new Error('packet too short'));
     return false;
   }
-  
+
   var ctrl = this._list.readUInt8(0);
   this.packet.radius = ctrl & constants.RADIUS_MASK;
   this.packet.wirelessNodeId = this._list.toString('utf8', 1, this.packet.length);
-  
+
   var header = this._parseHeaderInternal(this.packet.length);
   if (header === null) {
     return false;
@@ -369,7 +369,7 @@ Parser.prototype._parseEncapsulatedMsg = function parserParseEncapsulatedMsg() {
   }
   this.packet.length = this.packet.length + header.length + header.headerLength;
   this.packet.encapsulated = this._list.slice(this.packet.length, this.packet.length);
-  
+
   return true;
 };
 
@@ -380,19 +380,19 @@ Parser.prototype._parseReturnCode = function parserParseReturnCode(retCode) {
 Parser.prototype._parseFlags = function parserParseFlags(flags) {
   var packet = this.packet,
       result = true;
-  
+
   if ((packet.cmd === 'publish') ||
       (packet.cmd === 'subscribe')) {
     packet.dup = (flags & constants.DUP_MASK) === constants.DUP_MASK;
   }
-  
+
   if ((packet.cmd === 'willtopic') ||
       (packet.cmd === 'publish') ||
       (packet.cmd === 'subscribe') ||
       (packet.cmd === 'suback')) {
     packet.qos = (flags & constants.QOS_MASK) >> constants.QOS_SHIFT;
   }
-  
+
   if ((packet.cmd === 'willtopic') ||
       (packet.cmd === 'publish')) {
     packet.retain = (flags & constants.RETAIN_MASK) === constants.RETAIN_MASK;
